@@ -6,8 +6,7 @@ import android.support.v7.app.ActionBar;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.content.Context;
-import android.os.Build;
-import android.os.Bundle;
+import android.os.*;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -17,10 +16,20 @@ import android.view.ViewGroup;
 import android.support.v4.widget.DrawerLayout;
 import android.widget.ArrayAdapter;
 import android.widget.TextView;
+import android.widget.Toast;
+import android.util.Log;
+
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.concurrent.*;
+import java.io.*;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationDrawerFragment.NavigationDrawerCallbacks {
-
+    DoPostRequest postRequest;
     /**
      * Fragment managing the behaviors, interactions and presentation of the navigation drawer.
      */
@@ -36,6 +45,7 @@ public class MainActivity extends AppCompatActivity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+
         mNavigationDrawerFragment = (NavigationDrawerFragment)
                 getSupportFragmentManager().findFragmentById(R.id.navigation_drawer);
         mTitle = getTitle();
@@ -44,6 +54,28 @@ public class MainActivity extends AppCompatActivity
         mNavigationDrawerFragment.setUp(
                 R.id.navigation_drawer,
                 (DrawerLayout) findViewById(R.id.drawer_layout));
+    }
+
+    public void postRequest() {
+        try {
+            // Have one (or more) threads ready to do the async tasks. Do this during startup of your app.
+            ExecutorService executor = Executors.newFixedThreadPool(1);
+
+// Fire a request.
+            Future<Response> response = executor.submit(new Request(new URL("http://google.com")));
+
+// Do your other tasks here (will be processed immediately, current thread won't block).
+// ...
+
+// Get the response (here the current thread will block until response is returned).
+            InputStream body = response.get().getBody();
+// ...
+
+// Shutdown the threads during shutdown of your app.
+            executor.shutdown();
+        } catch (Exception e) {
+            Log.e("Error", "Post request error");
+        }
     }
 
     @Override
@@ -133,7 +165,7 @@ public class MainActivity extends AppCompatActivity
         @Override
         public View onCreateView(LayoutInflater inflater, ViewGroup container,
                                  Bundle savedInstanceState) {
-            View rootView = inflater.inflate(R.layout.fragment_main, container, false);
+            View rootView = inflater.inflate(R.layout.fragment_garbage, container, false);
             return rootView;
         }
 
@@ -145,4 +177,43 @@ public class MainActivity extends AppCompatActivity
         }
     }
 
+
+    private class DoPostRequest extends AsyncTask<String, Void, Void> {
+
+
+        @Override
+        protected Void doInBackground(String... postParams) {
+            try {
+                URL url = new URL("http://142.176.13.182/CBRMServices/WhenIsMyGarbageDay.aspx");
+                Map<String, Object> prms = new LinkedHashMap<>();
+                prms.put("txtStreetList", "St Peters Road, Sydney");
+                prms.put("txtHouseNumber", "29");
+
+                StringBuilder postData = new StringBuilder();
+                for (Map.Entry<String, Object> param : prms.entrySet()) {
+                    if (postData.length() != 0) postData.append('&');
+                    postData.append(URLEncoder.encode(param.getKey(), "UTF-8"));
+                    postData.append('=');
+                    postData.append(URLEncoder.encode(String.valueOf(param.getValue()), "UTF-8"));
+                }
+                byte[] postDataBytes = postData.toString().getBytes("UTF-8");
+
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+                conn.setRequestProperty("Content-Length", String.valueOf(postDataBytes.length));
+                conn.setDoOutput(true);
+                conn.getOutputStream().write(postDataBytes);
+
+                Reader in = new BufferedReader(new InputStreamReader(conn.getInputStream(), "UTF-8"));
+
+                for (int c; (c = in.read()) >= 0; )
+                    System.out.print((char) c);
+            } catch (Exception e) {
+                System.out.println("***Exception***");
+                System.out.println(e.toString());
+            }
+            return null;
+        }
+    }
 }

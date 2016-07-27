@@ -11,4 +11,8 @@
     <string name="action_example">Example action</string>
 
     <string name="action_settings">Settings</string>
+
+<!-- TODO: Remove or change this placeholder text -->
+    <string name="txtStreetList">St Peters Road, Sydney</string>
+    <string name="txtHouseNumber">29</string>
 </resources>
